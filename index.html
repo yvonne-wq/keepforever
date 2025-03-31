@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Art</title>
+    <style>
+        /* Make the body and html elements take up the full screen */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Set the image to cover the full screen */
+        #artwork {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;  /* Ensures the image covers the whole screen while maintaining aspect ratio */
+            transition: opacity 1s ease-in-out;
+            z-index: 1; /* Ensure image is below other elements */
+        }
+
+        /* Centering button and collaborators section */
+        .artwork-container {
+            position: relative;
+            z-index: 2;  /* Ensures these elements are above the image */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Update save button styling to be circular */
+        #saveButton {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;  /* Set fixed width */
+            height: 60px; /* Set fixed height - same as width for circle */
+            padding: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: none;
+            cursor: pointer;
+            color: rgb(0, 0, 0);
+            font-size: 17px;
+            font-weight: bold;
+            font-family:'Times New Roman', Times, serif;
+            border-radius: 50%; /* Makes it circular */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        #saveButton:hover {
+            background-color: #000000;
+            color: rgb(255, 255, 255);
+        }
+
+        #saveButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Collaborators section */
+        #collaborators {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 20px;
+            font-size: 16px;
+            text-align: center;
+            color: white;
+            z-index: 3;
+        }
+
+        #collaborators p {
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="artwork-container">
+        <img id="artwork" src="artwork1.jpeg" alt="Artwork">
+    </div>
+    <button id="saveButton">Keep Forever</button>
+    <div id="collaborators"></div>
+
+    <!-- Use a specific version of html2canvas known to work -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // Array of image sources
+        const images = [
+            'artwork1.jpeg',
+            'artwork2.jpeg',
+            'artwork3.jpeg',
+            'artwork4.jpeg',
+            'artwork5.jpeg',
+            'artwork6.jpeg',
+            // Add more image paths as needed
+        ];
+        
+        let currentImageIndex = 0;
+        let fadeTime = 3000;
+        let fadeInterval;
+        let opacity = 1;
+        let collaborators = [];
+
+        const artwork = document.getElementById('artwork');
+        const saveButton = document.getElementById('saveButton');
+        const collaboratorsDiv = document.getElementById('collaborators');
+
+        // Function to change to next image
+        function changeToNextImage() {
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            artwork.style.opacity = 0; // Fade out current image
+            
+            setTimeout(() => {
+                artwork.src = images[currentImageIndex];
+                artwork.style.opacity = 1; // Fade in new image
+                opacity = 1; // Reset fade opacity for new image
+            }, 1000); // Wait for fade out to complete
+        }
+
+        // Modified fade functionality to ensure full opacity on new image
+        function fadeArtwork() {
+            if (opacity > 0) {
+                opacity -= 0.05;
+                artwork.style.opacity = opacity;
+            } else {
+                // When fully faded, change to next image
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+                
+                // Reset opacity before changing source
+                opacity = 1;
+                artwork.style.opacity = 1;
+                
+                // Change image source
+                artwork.src = images[currentImageIndex];
+                
+                // Add a delay before starting to fade again
+                clearInterval(fadeInterval);
+                setTimeout(() => {
+                    fadeInterval = setInterval(fadeArtwork, 500);
+                }, 3000);
+            }
+        }
+
+        // Start initial fade with delay
+        setTimeout(() => {
+            fadeInterval = setInterval(fadeArtwork, 500);
+        }, fadeTime);
+
+        // Save button functionality
+        saveButton.addEventListener('click', async function() {
+            console.log("Save button clicked");
+            
+            try {
+                // Store current opacity
+                const currentOpacity = artwork.style.opacity;
+                
+                // Set to full opacity for screenshot
+                artwork.style.opacity = 1;
+
+                // Take screenshot at full opacity
+                const canvas = await html2canvas(document.querySelector('.artwork-container'), {
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: true,
+                    scale: 2
+                });
+
+                // Save the screenshot
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `artwork_${currentImageIndex + 1}.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Update collaborators count but don't display
+                const collaborator = `Collaborator ${collaborators.length + 1}`;
+                collaborators.push(collaborator);
+
+                // Restore original opacity and continue fading
+                artwork.style.opacity = currentOpacity;
+                opacity = parseFloat(currentOpacity);
+
+                alert(`You saved artwork ${currentImageIndex + 1}, ${collaborator}!`);
+
+            } catch (error) {
+                console.error("Screenshot failed:", error);
+                alert("Failed to save the artwork. Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
